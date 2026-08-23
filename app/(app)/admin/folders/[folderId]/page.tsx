@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GrantAccessForm, MemberPermissionControls } from "@/components/admin-forms";
-import { getFolderForUser, listFolderMembers, listUsers, listWorkbooks } from "@/lib/access";
+import { getFolderForUser, listFiles, listFolderMembers, listUsers } from "@/lib/access";
 import { requireAdmin } from "@/lib/session";
 
 export default async function ManageFolderAccessPage({ params }: PageProps<"/admin/folders/[folderId]">) {
@@ -14,7 +14,7 @@ export default async function ManageFolderAccessPage({ params }: PageProps<"/adm
   const members = listFolderMembers(folderId);
   const memberIds = new Set(members.map((member) => member.userId));
   const candidates = listUsers().filter((user) => !memberIds.has(user.id));
-  const workbooks = listWorkbooks(folderId);
+  const files = listFiles(folderId);
 
   return (
     <div>
@@ -25,7 +25,7 @@ export default async function ManageFolderAccessPage({ params }: PageProps<"/adm
       <div className="mb-8">
         <h1 className="page-title">{access.folder.name}</h1>
         <p className="subtle mt-1">
-          {workbooks.length} {workbooks.length === 1 ? "file" : "files"} · administrators always have full
+          {files.length} {files.length === 1 ? "file" : "files"} · administrators always have full
           access.
         </p>
       </div>

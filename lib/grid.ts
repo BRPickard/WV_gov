@@ -6,6 +6,9 @@ export const MAX_COLUMNS = 200;
 export const MIN_ROWS = 12;
 export const MIN_COLUMNS = 6;
 
+/** Fixed row height, in px — the virtualised grid measures scroll offsets with it. */
+export const ROW_HEIGHT = 32;
+
 /** Spreadsheet-style column labels: A, B, ... Z, AA, AB, ... */
 export function columnLabel(index: number): string {
   let label = "";

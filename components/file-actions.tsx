@@ -1,12 +1,17 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { createWorkbookAction, uploadWorkbookAction, type ActionState } from "@/app/(app)/folders/actions";
+import {
+  createSpreadsheetAction,
+  uploadFileAction,
+  type ActionState,
+} from "@/app/(app)/folders/actions";
+import { ALLOWED_ACCEPT_ATTRIBUTE } from "@/lib/files";
 
 const empty: ActionState = {};
 
-export function NewWorkbookForm({ folderId }: { folderId: string }) {
-  const [state, action, pending] = useActionState(createWorkbookAction, empty);
+export function NewSpreadsheetForm({ folderId }: { folderId: string }) {
+  const [state, action, pending] = useActionState(createSpreadsheetAction, empty);
   const [name, setName] = useState("");
 
   return (
@@ -34,8 +39,8 @@ export function NewWorkbookForm({ folderId }: { folderId: string }) {
   );
 }
 
-export function UploadWorkbookForm({ folderId }: { folderId: string }) {
-  const [state, action, pending] = useActionState(uploadWorkbookAction, empty);
+export function UploadFileForm({ folderId }: { folderId: string }) {
+  const [state, action, pending] = useActionState(uploadFileAction, empty);
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -47,11 +52,11 @@ export function UploadWorkbookForm({ folderId }: { folderId: string }) {
         className="hidden"
         type="file"
         name="file"
-        accept=".xlsx"
+        accept={ALLOWED_ACCEPT_ATTRIBUTE}
         onChange={() => formRef.current?.requestSubmit()}
       />
       <button className="btn" type="button" disabled={pending} onClick={() => inputRef.current?.click()}>
-        {pending ? "Uploading…" : "Upload .xlsx"}
+        {pending ? "Uploading…" : "Upload file"}
       </button>
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
     </form>

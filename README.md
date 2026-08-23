@@ -22,7 +22,11 @@ for reading and writing real `.xlsx` files.
   everywhere.
 - **Real Excel editing.** Open a workbook in a grid, change cells, add or
   remove rows, columns and sheets, and save straight back to the `.xlsx` file
-  on disk. Download the file at any time.
+  on disk. Download the file at any time. The grid renders only the rows on
+  screen, so a 3,500-row sheet opens as fast as a 20-row one.
+- **Other files ride along.** A folder can also hold Word documents, PDFs,
+  `.xlsm`, `.csv` and the like. Those are stored and downloaded byte-for-byte
+  rather than opened in the grid — the only form in which they survive intact.
 - **Admin console.** Create accounts, reset passwords, promote to
   administrator, create folders, and grant or revoke folder access.
 
@@ -30,11 +34,14 @@ for reading and writing real `.xlsx` files.
 
 ```bash
 npm install
-cp .env.example .env.local          # then set BETTER_AUTH_SECRET
-npm run db:migrate                  # create the tables
-npm run seed                        # optional demo data (see below)
-npm run dev                         # http://localhost:3000
+cp .env.example .env.local                                   # then set BETTER_AUTH_SECRET
+npm run db:migrate                                           # create the tables
+npm run create-admin -- "Your Name" you@wv.gov 'a-password'  # the first account
+npm run dev                                                  # http://localhost:3000
 ```
+
+Sign-up is closed, so `create-admin` (or `npm run seed`, below) is the only way
+the first account comes into existence.
 
 `BETTER_AUTH_SECRET` is required — generate one with `openssl rand -base64 32`.
 `BETTER_AUTH_URL` must match the origin the app is served from; requests
@@ -79,6 +86,26 @@ Two things worth knowing:
     - cxx-compiler    # on Windows, install MSVC Build Tools instead
   ```
 
+### Loading an existing folder tree
+
+If the folders and files already exist on disk — one directory per folder, its
+files inside — import them in one go:
+
+```bash
+npm run import -- /path/to/tree            # add what is missing
+npm run import -- /path/to/tree --replace  # also overwrite files already there
+```
+
+Re-running is safe: folders and files that already exist are left alone unless
+`--replace` is passed. Every spreadsheet is opened during the import, so a file
+the editor cannot read is reported rather than left as a broken page. Anything
+skipped — a nested directory, an unsupported type, a file over the 10 MB limit —
+is listed at the end.
+
+**Imported folders start with no access grants**, so only administrators can
+see them until access is handed out under `/admin`. Nothing in a directory tree
+says who should be allowed to read it, so the import will not guess.
+
 ### Demo accounts
 
 `npm run seed` creates three accounts (password `ChangeMe!2026`, override with
@@ -93,13 +120,6 @@ Two things worth knowing:
 Dana never sees Public Works or Human Resources; Marcus can read the budget
 workbook but the API rejects any save he attempts.
 
-### Bootstrapping a real deployment
-
-Sign-up is closed, so the first administrator has to come from the seed script.
-Either run `npm run seed` and change that account's password and email from the
-admin console, or write a one-off script that calls `createUserAccount` from
-`lib/users.ts` with `role: "admin"`.
-
 ## Scripts
 
 | Command | What it does |
@@ -108,6 +128,8 @@ admin console, or write a one-off script that calls `createUserAccount` from
 | `npm run build` | Production build |
 | `npm run start` | Migrate, then start the production server |
 | `npm run db:migrate` | Create/update all tables (idempotent) |
+| `npm run create-admin -- "<name>" <email> <password>` | Create the first administrator |
+| `npm run import -- <dir> [--replace]` | Import a directory of folders and files |
 | `npm run seed` | Create the demo accounts, folders and workbooks |
 
 ## How it fits together
@@ -117,11 +139,11 @@ app/
   login/                     sign-in page
   (app)/                     everything behind a session
     folders/                 folder list + folder contents + server actions
-    workbooks/[workbookId]/  the spreadsheet editor page
+    files/[fileId]/          the spreadsheet editor, or a download panel
     admin/                   user, folder and access management
   api/
     auth/[...all]/           Better Auth handler
-    workbooks/[workbookId]/  GET sheet data, PUT save, GET download
+    files/[fileId]/          GET sheet data, PUT save, GET download
 lib/
   auth.ts        Better Auth configuration
   db.ts          SQLite connection + app schema
@@ -130,6 +152,7 @@ lib/
   session.ts     session helpers for pages and route handlers
   users.ts       admin-only account provisioning
   excel.ts       .xlsx <-> grid conversion (server only)
+  files.ts       which extensions are allowed, and which open in the grid
   grid.ts        grid constants shared with client components
   storage.ts     file paths, upload limits
 proxy.ts         optimistic redirect for anonymous visitors
@@ -143,9 +166,9 @@ or short-circuits for administrators. Route handlers re-check the same grants
 before reading or writing a file, so a hand-crafted request cannot reach a
 workbook the caller has not been granted.
 
-**Storage.** Metadata lives in `data/app.db` (SQLite); the workbooks themselves
-are stored as real `.xlsx` files under `data/files/`, named by UUID so an
-uploaded filename can never escape the directory. Saves are written to a
+**Storage.** Metadata lives in `data/app.db` (SQLite); the files themselves are
+stored under `data/files/`, named by UUID so an uploaded filename can never
+escape the directory. Saves are written to a
 temporary file and renamed into place, so a failed save cannot truncate the
 existing workbook. Set `DATA_DIR` to move both.
 
@@ -154,9 +177,12 @@ existing workbook. Set `DATA_DIR` to move both.
 These are deliberate, to keep the app small:
 
 - Cell **formulas are saved as text**, not recalculated. Formatting, charts,
-  merged cells and images in an uploaded workbook are not preserved on save.
+  merged cells, images, data validations and conditional formatting in an
+  uploaded workbook are not preserved on save — saving rewrites the workbook
+  from the grid. Download the original first if any of that matters.
 - Saving writes the whole workbook. Two people editing the same file at the
   same time will have the last save win — there is no cell-level merge.
 - Uploads are capped at 10 MB, 5,000 rows and 200 columns per sheet.
+- Folders do not nest. The import script reports any nested directory it skips.
 - SQLite and local disk mean a single server. Point `DATA_DIR` at a persistent
   volume, and back it up.

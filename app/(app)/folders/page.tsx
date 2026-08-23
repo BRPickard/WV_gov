@@ -51,7 +51,7 @@ export default async function FoldersPage() {
                 <p className="font-medium text-ink">{folder.name}</p>
                 {folder.description && <p className="subtle mt-1 line-clamp-2">{folder.description}</p>}
                 <p className="subtle mt-auto pt-4 text-xs">
-                  {folder.workbookCount} {folder.workbookCount === 1 ? "file" : "files"}
+                  {folder.fileCount} {folder.fileCount === 1 ? "file" : "files"}
                 </p>
               </Link>
             </li>

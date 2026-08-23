@@ -1,3 +1,5 @@
+import type { FileKind } from "./files";
+
 export type Permission = "view" | "edit";
 export type Role = "admin" | "member";
 
@@ -19,14 +21,16 @@ export type Folder = {
 /** A folder plus what the current user is allowed to do inside it. */
 export type FolderWithAccess = Folder & {
   permission: Permission;
-  workbookCount: number;
+  fileCount: number;
 };
 
-export type Workbook = {
+export type StoredFile = {
   id: string;
   folderId: string;
   name: string;
   storageName: string;
+  kind: FileKind;
+  contentType: string;
   sizeBytes: number;
   createdAt: string;
   updatedAt: string;

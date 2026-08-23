@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { deleteWorkbookAction, type ActionState } from "@/app/(app)/folders/actions";
+import { deleteFileAction, type ActionState } from "@/app/(app)/folders/actions";
 
 const empty: ActionState = {};
 
-export default function DeleteWorkbookButton({ workbookId, name }: { workbookId: string; name: string }) {
-  const [state, action, pending] = useActionState(deleteWorkbookAction, empty);
+export default function DeleteFileButton({ fileId, name }: { fileId: string; name: string }) {
+  const [state, action, pending] = useActionState(deleteFileAction, empty);
 
   return (
     <form
@@ -15,7 +15,7 @@ export default function DeleteWorkbookButton({ workbookId, name }: { workbookId:
         if (!confirm(`Delete "${name}"? This cannot be undone.`)) event.preventDefault();
       }}
     >
-      <input type="hidden" name="workbookId" value={workbookId} />
+      <input type="hidden" name="fileId" value={fileId} />
       <button className="btn btn-danger" type="submit" disabled={pending} title={state.error ?? "Delete file"}>
         {pending ? "Deleting…" : "Delete"}
       </button>

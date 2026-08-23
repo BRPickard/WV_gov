@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db";
-import type { Folder, FolderWithAccess, Permission, SessionUser, Workbook } from "./types";
+import { contentTypeOf, kindOf } from "./files";
+import type { Folder, FolderWithAccess, Permission, SessionUser, StoredFile } from "./types";
 
 const now = () => new Date().toISOString();
 
@@ -14,17 +15,17 @@ export function listFoldersForUser(user: SessionUser): FolderWithAccess[] {
   if (user.role === "admin") {
     return db
       .prepare(
-        `SELECT f.*, (SELECT COUNT(*) FROM workbook w WHERE w.folderId = f.id) AS workbookCount
+        `SELECT f.*, (SELECT COUNT(*) FROM file x WHERE x.folderId = f.id) AS fileCount
          FROM folder f ORDER BY f.name COLLATE NOCASE`,
       )
       .all()
-      .map((row) => ({ ...(row as Folder & { workbookCount: number }), permission: "edit" as Permission }));
+      .map((row) => ({ ...(row as Folder & { fileCount: number }), permission: "edit" as Permission }));
   }
 
   return db
     .prepare(
       `SELECT f.*, a.permission,
-              (SELECT COUNT(*) FROM workbook w WHERE w.folderId = f.id) AS workbookCount
+              (SELECT COUNT(*) FROM file x WHERE x.folderId = f.id) AS fileCount
        FROM folder f
        JOIN folder_access a ON a.folderId = f.id AND a.userId = ?
        ORDER BY f.name COLLATE NOCASE`,
@@ -49,29 +50,29 @@ export function getFolderForUser(
   return grant ? { folder, permission: grant.permission } : null;
 }
 
-export type WorkbookListing = Workbook & { updatedByName: string | null };
+export type FileListing = StoredFile & { updatedByName: string | null };
 
-export function listWorkbooks(folderId: string): WorkbookListing[] {
+export function listFiles(folderId: string): FileListing[] {
   return db
     .prepare(
-      `SELECT w.*, u.name AS updatedByName
-       FROM workbook w LEFT JOIN "user" u ON u.id = w.updatedBy
-       WHERE w.folderId = ? ORDER BY w.name COLLATE NOCASE`,
+      `SELECT x.*, u.name AS updatedByName
+       FROM file x LEFT JOIN "user" u ON u.id = x.updatedBy
+       WHERE x.folderId = ? ORDER BY x.name COLLATE NOCASE`,
     )
-    .all(folderId) as WorkbookListing[];
+    .all(folderId) as FileListing[];
 }
 
-export function getWorkbookForUser(
+export function getFileForUser(
   user: SessionUser,
-  workbookId: string,
-): { workbook: Workbook; folder: Folder; permission: Permission } | null {
-  const workbook = db.prepare(`SELECT * FROM workbook WHERE id = ?`).get(workbookId) as Workbook | undefined;
-  if (!workbook) return null;
+  fileId: string,
+): { file: StoredFile; folder: Folder; permission: Permission } | null {
+  const file = db.prepare(`SELECT * FROM file WHERE id = ?`).get(fileId) as StoredFile | undefined;
+  if (!file) return null;
 
-  const access = getFolderForUser(user, workbook.folderId);
+  const access = getFolderForUser(user, file.folderId);
   if (!access) return null;
 
-  return { workbook, folder: access.folder, permission: access.permission };
+  return { file, folder: access.folder, permission: access.permission };
 }
 
 /* ---------------------------------------------------------------- mutations */
@@ -127,51 +128,55 @@ export function setUserRole(userId: string, role: "admin" | "member") {
   db.prepare(`UPDATE "user" SET role = ?, updatedAt = ? WHERE id = ?`).run(role, now(), userId);
 }
 
-export function registerWorkbook(input: {
+export function registerFile(input: {
   folderId: string;
   name: string;
   storageName: string;
   sizeBytes: number;
   userId: string;
-}): Workbook {
+}): StoredFile {
   const stamp = now();
-  const workbook: Workbook = {
+  const file: StoredFile = {
     id: randomUUID(),
     folderId: input.folderId,
     name: input.name,
     storageName: input.storageName,
+    kind: kindOf(input.name),
+    contentType: contentTypeOf(input.name),
     sizeBytes: input.sizeBytes,
     createdAt: stamp,
     updatedAt: stamp,
     updatedBy: input.userId,
   };
   db.prepare(
-    `INSERT INTO workbook (id, folderId, name, storageName, sizeBytes, createdAt, updatedAt, updatedBy)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO file (id, folderId, name, storageName, kind, contentType, sizeBytes, createdAt, updatedAt, updatedBy)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
-    workbook.id,
-    workbook.folderId,
-    workbook.name,
-    workbook.storageName,
-    workbook.sizeBytes,
-    workbook.createdAt,
-    workbook.updatedAt,
-    workbook.updatedBy,
+    file.id,
+    file.folderId,
+    file.name,
+    file.storageName,
+    file.kind,
+    file.contentType,
+    file.sizeBytes,
+    file.createdAt,
+    file.updatedAt,
+    file.updatedBy,
   );
-  return workbook;
+  return file;
 }
 
-export function touchWorkbook(workbookId: string, sizeBytes: number, userId: string) {
-  db.prepare(`UPDATE workbook SET updatedAt = ?, updatedBy = ?, sizeBytes = ? WHERE id = ?`).run(
+export function touchFile(fileId: string, sizeBytes: number, userId: string) {
+  db.prepare(`UPDATE file SET updatedAt = ?, updatedBy = ?, sizeBytes = ? WHERE id = ?`).run(
     now(),
     userId,
     sizeBytes,
-    workbookId,
+    fileId,
   );
 }
 
-export function deleteWorkbookRecord(workbookId: string) {
-  db.prepare(`DELETE FROM workbook WHERE id = ?`).run(workbookId);
+export function deleteFileRecord(fileId: string) {
+  db.prepare(`DELETE FROM file WHERE id = ?`).run(fileId);
 }
 
 export function getUserName(userId: string | null): string | null {

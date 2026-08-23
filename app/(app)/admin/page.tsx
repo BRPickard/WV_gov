@@ -52,7 +52,7 @@ export default async function AdminPage() {
                       <p className="font-medium text-ink">{folder.name}</p>
                       {folder.description && <p className="subtle">{folder.description}</p>}
                     </td>
-                    <td className="hidden px-5 py-3 text-muted sm:table-cell">{folder.workbookCount}</td>
+                    <td className="hidden px-5 py-3 text-muted sm:table-cell">{folder.fileCount}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <Link className="btn btn-ghost" href={`/admin/folders/${folder.id}`}>

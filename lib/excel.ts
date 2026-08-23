@@ -48,9 +48,19 @@ function padGrid(rows: string[][]): string[][] {
   return grid;
 }
 
+/*
+ * Nodes the grid throws away anyway, and that ExcelJS expands cell-by-cell
+ * while parsing. A validation or format rule applied to whole columns
+ * (`D1:G1048576`, which Excel writes when a user formats a column) expands to
+ * tens of millions of entries and never finishes — real workbooks in this
+ * library hit exactly that. Skipping the nodes takes those files from an
+ * indefinite hang to ~70ms.
+ */
+const IGNORED_NODES = ["dataValidations", "conditionalFormatting"];
+
 export async function readWorkbookFile(filePath: string): Promise<WorkbookData> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
+  await workbook.xlsx.readFile(filePath, { ignoreNodes: IGNORED_NODES });
 
   const sheets: SheetData[] = workbook.worksheets.map((worksheet) => {
     const rows: string[][] = [];

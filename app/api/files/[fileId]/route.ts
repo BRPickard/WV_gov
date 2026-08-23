@@ -1,35 +1,42 @@
 import fs from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { getWorkbookForUser, touchWorkbook } from "@/lib/access";
+import { getFileForUser, touchFile } from "@/lib/access";
 import { readWorkbookFile, writeWorkbookFile } from "@/lib/excel";
 import { MAX_COLUMNS, MAX_ROWS } from "@/lib/grid";
 import { getApiUser } from "@/lib/session";
-import { workbookPath } from "@/lib/storage";
+import { storagePath } from "@/lib/storage";
 import type { SheetData } from "@/lib/types";
 
 const MAX_CELL_LENGTH = 32_767; // Excel's own per-cell limit
 
-export async function GET(request: Request, { params }: RouteContext<"/api/workbooks/[workbookId]">) {
+export async function GET(request: Request, { params }: RouteContext<"/api/files/[fileId]">) {
   const user = await getApiUser(request);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const { workbookId } = await params;
-  const found = getWorkbookForUser(user, workbookId);
+  const { fileId } = await params;
+  const found = getFileForUser(user, fileId);
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data = await readWorkbookFile(workbookPath(found.workbook.storageName));
-  return NextResponse.json({ name: found.workbook.name, permission: found.permission, ...data });
+  if (found.file.kind !== "spreadsheet") {
+    return NextResponse.json({ error: "This file is not a spreadsheet" }, { status: 400 });
+  }
+
+  const data = await readWorkbookFile(storagePath(found.file.storageName));
+  return NextResponse.json({ name: found.file.name, permission: found.permission, ...data });
 }
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/workbooks/[workbookId]">) {
+export async function PUT(request: Request, { params }: RouteContext<"/api/files/[fileId]">) {
   const user = await getApiUser(request);
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const { workbookId } = await params;
-  const found = getWorkbookForUser(user, workbookId);
+  const { fileId } = await params;
+  const found = getFileForUser(user, fileId);
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (found.permission !== "edit") {
     return NextResponse.json({ error: "You have view-only access to this folder" }, { status: 403 });
+  }
+  if (found.file.kind !== "spreadsheet") {
+    return NextResponse.json({ error: "This file is not editable in the browser" }, { status: 400 });
   }
 
   let sheets: SheetData[];
@@ -41,7 +48,7 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/workb
 
   // Write beside the original and swap, so a failed save never truncates the
   // workbook that is already on disk.
-  const target = workbookPath(found.workbook.storageName);
+  const target = storagePath(found.file.storageName);
   const temporary = `${target}.saving`;
   try {
     await writeWorkbookFile(temporary, { sheets });
@@ -52,7 +59,7 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/workb
   }
 
   const { size } = await fs.stat(target);
-  touchWorkbook(workbookId, size, user.id);
+  touchFile(fileId, size, user.id);
 
   return NextResponse.json({ ok: true, savedAt: new Date().toISOString() });
 }

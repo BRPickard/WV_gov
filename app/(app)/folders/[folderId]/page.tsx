@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import DeleteWorkbookButton from "@/components/delete-workbook-button";
-import { NewWorkbookForm, UploadWorkbookForm } from "@/components/workbook-actions";
-import { getFolderForUser, listWorkbooks } from "@/lib/access";
+import DeleteFileButton from "@/components/delete-file-button";
+import { NewSpreadsheetForm, UploadFileForm } from "@/components/file-actions";
+import { getFolderForUser, listFiles } from "@/lib/access";
+import { extensionOf } from "@/lib/files";
 import { formatBytes, formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
@@ -15,7 +16,7 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
   // does not exist — no information leaks through this page.
   if (!access) notFound();
 
-  const workbooks = listWorkbooks(folderId);
+  const files = listFiles(folderId);
   const canEdit = access.permission === "edit";
 
   return (
@@ -28,28 +29,26 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
         <div>
           <div className="flex items-center gap-3">
             <h1 className="page-title">{access.folder.name}</h1>
-            <span
-              className={`badge ${canEdit ? "bg-accent-soft text-accent" : "bg-canvas text-muted"}`}
-            >
+            <span className={`badge ${canEdit ? "bg-accent-soft text-accent" : "bg-canvas text-muted"}`}>
               {canEdit ? "Can edit" : "View only"}
             </span>
           </div>
           {access.folder.description && <p className="subtle mt-1">{access.folder.description}</p>}
         </div>
-        {canEdit && <UploadWorkbookForm folderId={folderId} />}
+        {canEdit && <UploadFileForm folderId={folderId} />}
       </div>
 
       {canEdit && (
         <div className="card mb-6 p-4">
-          <NewWorkbookForm folderId={folderId} />
+          <NewSpreadsheetForm folderId={folderId} />
         </div>
       )}
 
-      {workbooks.length === 0 ? (
+      {files.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="font-medium text-ink">This folder is empty</p>
           <p className="subtle mt-1">
-            {canEdit ? "Create a workbook or upload an .xlsx file to get started." : "Nothing has been added yet."}
+            {canEdit ? "Create a workbook or upload a file to get started." : "Nothing has been added yet."}
           </p>
         </div>
       ) : (
@@ -65,32 +64,33 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
               </tr>
             </thead>
             <tbody>
-              {workbooks.map((workbook) => (
-                <tr key={workbook.id} className="border-b border-line last:border-0 hover:bg-canvas">
+              {files.map((file) => (
+                <tr key={file.id} className="border-b border-line last:border-0 hover:bg-canvas">
                   <td className="px-5 py-3">
                     <Link
-                      href={`/workbooks/${workbook.id}`}
+                      href={`/files/${file.id}`}
                       className="flex items-center gap-2.5 font-medium text-ink hover:text-accent"
                     >
-                      <SheetIcon />
-                      {workbook.name}
+                      <FileIcon spreadsheet={file.kind === "spreadsheet"} />
+                      <span>
+                        {file.name}
+                        {file.kind !== "spreadsheet" && (
+                          <span className="ml-2 text-xs font-normal uppercase text-muted">
+                            {extensionOf(file.name).replace(".", "")}
+                          </span>
+                        )}
+                      </span>
                     </Link>
                   </td>
-                  <td className="hidden px-5 py-3 text-muted sm:table-cell">
-                    {formatDate(workbook.updatedAt)}
-                  </td>
-                  <td className="hidden px-5 py-3 text-muted md:table-cell">
-                    {workbook.updatedByName ?? "—"}
-                  </td>
-                  <td className="hidden px-5 py-3 text-muted sm:table-cell">
-                    {formatBytes(workbook.sizeBytes)}
-                  </td>
+                  <td className="hidden px-5 py-3 text-muted sm:table-cell">{formatDate(file.updatedAt)}</td>
+                  <td className="hidden px-5 py-3 text-muted md:table-cell">{file.updatedByName ?? "—"}</td>
+                  <td className="hidden px-5 py-3 text-muted sm:table-cell">{formatBytes(file.sizeBytes)}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Link className="btn btn-ghost" href={`/api/workbooks/${workbook.id}/download`}>
+                      <Link className="btn btn-ghost" href={`/api/files/${file.id}/download`}>
                         Download
                       </Link>
-                      {canEdit && <DeleteWorkbookButton workbookId={workbook.id} name={workbook.name} />}
+                      {canEdit && <DeleteFileButton fileId={file.id} name={file.name} />}
                     </div>
                   </td>
                 </tr>
@@ -103,7 +103,24 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
   );
 }
 
-function SheetIcon() {
+function FileIcon({ spreadsheet }: { spreadsheet: boolean }) {
+  if (spreadsheet) {
+    return (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        className="shrink-0 text-emerald-600"
+      >
+        <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
+        <path d="M3.5 9.5h17M9.5 9.5v11" />
+      </svg>
+    );
+  }
+
   return (
     <svg
       width="16"
@@ -112,10 +129,10 @@ function SheetIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"
-      className="text-emerald-600"
+      className="shrink-0 text-muted"
     >
-      <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
-      <path d="M3.5 9.5h17M9.5 9.5v11" />
+      <path d="M6 3.5h7.5L18 8v12.5H6z" />
+      <path d="M13.5 3.5V8H18" />
     </svg>
   );
 }

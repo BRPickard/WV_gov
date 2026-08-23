@@ -25,12 +25,16 @@ CREATE TABLE IF NOT EXISTS folder_access (
 CREATE INDEX IF NOT EXISTS folder_access_userId_idx ON folder_access (userId);
 CREATE INDEX IF NOT EXISTS folder_access_folderId_idx ON folder_access (folderId);
 
--- An .xlsx file inside a folder. The bytes live at DATA_DIR/files/<storageName>.
-CREATE TABLE IF NOT EXISTS workbook (
+-- A file inside a folder. The bytes live at DATA_DIR/files/<storageName>.
+-- kind = 'spreadsheet' opens in the grid editor; 'document' is stored and
+-- downloaded as-is.
+CREATE TABLE IF NOT EXISTS file (
   id          TEXT PRIMARY KEY,
   folderId    TEXT NOT NULL REFERENCES folder (id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   storageName TEXT NOT NULL,
+  kind        TEXT NOT NULL CHECK (kind IN ('spreadsheet', 'document')),
+  contentType TEXT NOT NULL,
   sizeBytes   INTEGER NOT NULL DEFAULT 0,
   createdAt   TEXT NOT NULL,
   updatedAt   TEXT NOT NULL,
@@ -38,5 +42,5 @@ CREATE TABLE IF NOT EXISTS workbook (
   UNIQUE (folderId, name)
 );
 
-CREATE INDEX IF NOT EXISTS workbook_folderId_idx ON workbook (folderId);
+CREATE INDEX IF NOT EXISTS file_folderId_idx ON file (folderId);
 `;

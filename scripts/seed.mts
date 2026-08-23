@@ -5,10 +5,10 @@
  */
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
-import { listUsers, createFolder, registerWorkbook, setFolderAccess } from "../lib/access";
+import { listUsers, createFolder, registerFile, setFolderAccess } from "../lib/access";
 import { db } from "../lib/db";
 import { writeWorkbookFile } from "../lib/excel";
-import { workbookPath } from "../lib/storage";
+import { storagePath } from "../lib/storage";
 import { createUserAccount } from "../lib/users";
 import type { Role } from "../lib/types";
 
@@ -97,14 +97,14 @@ async function main() {
     const folder = createFolder(definition.name, definition.description, adminId);
 
     const storageName = `${randomUUID()}.xlsx`;
-    await writeWorkbookFile(workbookPath(storageName), {
+    await writeWorkbookFile(storagePath(storageName), {
       sheets: [{ name: "Sheet1", rows: definition.workbook.rows }],
     });
-    registerWorkbook({
+    registerFile({
       folderId: folder.id,
       name: definition.workbook.name,
       storageName,
-      sizeBytes: fs.statSync(workbookPath(storageName)).size,
+      sizeBytes: fs.statSync(storagePath(storageName)).size,
       userId: adminId,
     });
 
