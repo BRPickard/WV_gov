@@ -34,18 +34,30 @@ for reading and writing real `.xlsx` files.
 
 ```bash
 npm install
-cp .env.example .env.local                                   # then set BETTER_AUTH_SECRET
-npm run db:migrate                                           # create the tables
-npm run create-admin -- "Your Name" you@wv.gov 'a-password'  # the first account
-npm run dev                                                  # http://localhost:3000
+cp .env.example .env.local                                    # copy on Windows cmd
+npm run db:migrate                                            # create the tables
+npm run create-admin -- "Your Name" you@wv.gov "a-password"   # the first account
+npm run dev                                                   # http://localhost:3000
 ```
 
 Sign-up is closed, so `create-admin` (or `npm run seed`, below) is the only way
 the first account comes into existence.
 
-`BETTER_AUTH_SECRET` is required — generate one with `openssl rand -base64 32`.
-`BETTER_AUTH_URL` must match the origin the app is served from; requests
-arriving with a different `Origin` header are rejected.
+**On Windows** use `cmd` or PowerShell as normal, with two adjustments: `copy`
+instead of `cp`, and double quotes everywhere — `cmd` passes single-quoted text
+through with the quotes attached, which would end up inside your password.
+
+`BETTER_AUTH_SECRET` is required. Generate one with a command that works on
+every platform:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+`BETTER_AUTH_URL` must match the origin you actually browse to — if it says
+`localhost:3000` and you open `127.0.0.1:3000`, sign-in fails with
+`Invalid origin`, because requests carrying a different `Origin` header are
+rejected.
 
 ### Running it in a conda / Anaconda environment
 
