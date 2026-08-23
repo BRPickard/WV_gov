@@ -23,7 +23,8 @@ for reading and writing real `.xlsx` files.
   table, so a folder a user has no grant for is invisible to them and returns
   the same 404 as one that does not exist.
 - **Two permission levels.** `View only` opens workbooks read-only; `Can edit`
-  allows editing, uploading and deleting. Administrators hold edit rights
+  lets a member change and save cells in a workbook. Adding, uploading and
+  deleting files is reserved for administrators. Administrators can edit
   everywhere.
 - **Real Excel editing.** Open a workbook in a grid, change cells, add or
   remove rows, columns and sheets, and save straight back to the `.xlsx` file

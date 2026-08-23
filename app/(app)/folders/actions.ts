@@ -6,21 +6,21 @@ import { revalidatePath } from "next/cache";
 import { deleteFileRecord, getFileForUser, getFolderForUser, registerFile } from "@/lib/access";
 import { createWorkbookFile, readWorkbookFile } from "@/lib/excel";
 import { ALLOWED_EXTENSIONS_LABEL, extensionOf, isAllowedFile, kindOf } from "@/lib/files";
-import { requireUser } from "@/lib/session";
+import { requireAdmin } from "@/lib/session";
 import { MAX_UPLOAD_BYTES, cleanFileName, removeStoredFile, storagePath } from "@/lib/storage";
 
 export type ActionState = { error?: string; ok?: boolean };
 
-/** Creates an empty spreadsheet inside a folder the caller can edit. */
+/** Creates an empty spreadsheet in a folder. Administrators only. */
 export async function createSpreadsheetAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireAdmin();
   const folderId = String(formData.get("folderId") ?? "");
   const access = getFolderForUser(user, folderId);
 
-  if (!access || access.permission !== "edit") return { error: "You cannot add files to this folder." };
+  if (!access) return { error: "That folder does not exist." };
 
   const name = cleanFileName(`${String(formData.get("name") ?? "").replace(/\.xlsx$/i, "")}.xlsx`, ".xlsx");
   const storageName = `${randomUUID()}.xlsx`;
@@ -40,16 +40,16 @@ export async function createSpreadsheetAction(
   return { ok: true };
 }
 
-/** Uploads a file into a folder the caller can edit. */
+/** Uploads a file into a folder. Administrators only. */
 export async function uploadFileAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireAdmin();
   const folderId = String(formData.get("folderId") ?? "");
   const access = getFolderForUser(user, folderId);
 
-  if (!access || access.permission !== "edit") return { error: "You cannot add files to this folder." };
+  if (!access) return { error: "That folder does not exist." };
 
   const upload = formData.get("file");
   if (!(upload instanceof File) || upload.size === 0) return { error: "Choose a file to upload." };
@@ -81,11 +81,11 @@ export async function deleteFileAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireAdmin();
   const fileId = String(formData.get("fileId") ?? "");
   const found = getFileForUser(user, fileId);
 
-  if (!found || found.permission !== "edit") return { error: "You cannot delete this file." };
+  if (!found) return { error: "That file does not exist." };
 
   deleteFileRecord(fileId);
   await removeStoredFile(found.file.storageName);

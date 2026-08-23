@@ -18,6 +18,9 @@ full picture; the essentials for working in this repo:
 - **The grid is virtualised** — only rows in view are mounted, keyed off the
   fixed `ROW_HEIGHT` in `lib/grid.ts`. Sheets here run to 3,500+ rows; mounting
   every cell produced a 35 MB page. Keep row height fixed and in sync.
+- Uploading, creating and deleting files are administrator-only, enforced in
+  the folder server actions with `requireAdmin`; `Can edit` only lets a member
+  save cell changes to an existing workbook.
 - A folder holds two kinds of file. `kind = 'spreadsheet'` (.xlsx) opens in the
   editor; everything else is stored and downloaded byte-for-byte.
 - `library/` holds the real folders and documents, committed with the code.

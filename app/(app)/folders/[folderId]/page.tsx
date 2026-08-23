@@ -36,9 +36,9 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
       }))}
       currentFolderId={folderId}
       currentFolderName={access.folder.name}
-      canEdit={access.permission === "edit"}
+      canManage={user.role === "admin"}
       emptyMessage={
-        access.permission === "edit"
+        user.role === "admin"
           ? "This folder is empty. Create a workbook or upload a file."
           : "This folder is empty."
       }

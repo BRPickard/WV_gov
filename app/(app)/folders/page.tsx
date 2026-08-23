@@ -29,7 +29,7 @@ export default async function FoldersPage() {
       }))}
       currentFolderId={null}
       currentFolderName={null}
-      canEdit={false}
+      canManage={false}
       emptyMessage={
         user.role === "admin"
           ? "No folders yet. Create one under Admin."

@@ -29,7 +29,7 @@ type Props = {
   folders: SidebarFolder[];
   currentFolderId: string | null;
   currentFolderName: string | null;
-  canEdit: boolean;
+  canManage: boolean;
   emptyMessage: string;
 };
 
@@ -38,7 +38,7 @@ export default function Explorer({
   folders,
   currentFolderId,
   currentFolderName,
-  canEdit,
+  canManage,
   emptyMessage,
 }: Props) {
   const router = useRouter();
@@ -145,9 +145,9 @@ export default function Explorer({
       </div>
 
       {/* toolbar */}
-      {(canEdit || selectedRow) && (
+      {(canManage || selectedRow) && (
         <div className="flex flex-wrap items-center gap-2 border-b border-line bg-canvas px-3 py-2">
-          {currentFolderId && canEdit && (
+          {currentFolderId && canManage && (
             <>
               <NewSpreadsheetForm folderId={currentFolderId} />
               <UploadFileForm folderId={currentFolderId} />
@@ -164,7 +164,7 @@ export default function Explorer({
                   Download
                 </a>
               )}
-              {selectedRow.kind !== "folder" && canEdit && (
+              {selectedRow.kind !== "folder" && canManage && (
                 <form
                   action={runDelete}
                   onSubmit={(event) => {
