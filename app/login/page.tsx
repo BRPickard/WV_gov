@@ -11,14 +11,6 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-6 py-16">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-lg font-semibold text-white">
-            WV
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-ink">Document Library</h1>
-          <p className="subtle mt-1">Sign in to open the workbooks shared with you.</p>
-        </div>
-
         <div className="card p-6 shadow-sm">
           <LoginForm />
         </div>

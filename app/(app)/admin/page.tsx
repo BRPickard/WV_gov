@@ -55,9 +55,6 @@ export default async function AdminPage() {
                     <td className="hidden px-5 py-3 text-muted sm:table-cell">{folder.fileCount}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Link className="btn btn-ghost" href={`/admin/folders/${folder.id}`}>
-                          Manage access
-                        </Link>
                         <DeleteFolderButton folderId={folder.id} name={folder.name} />
                       </div>
                     </td>
@@ -92,10 +89,13 @@ export default async function AdminPage() {
                 return (
                   <tr key={user.id} className="border-b border-line last:border-0">
                     <td className="px-5 py-3">
-                      <p className="font-medium text-ink">
+                      <Link
+                        href={`/admin/people/${user.id}`}
+                        className="font-medium text-ink hover:text-accent"
+                      >
                         {user.name}
                         {isSelf && <span className="subtle"> (you)</span>}
-                      </p>
+                      </Link>
                       <p className="subtle">{user.email}</p>
                     </td>
                     <td className="hidden px-5 py-3 text-muted md:table-cell">{formatDate(user.createdAt)}</td>
@@ -104,6 +104,9 @@ export default async function AdminPage() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap items-center justify-end gap-1">
+                        <Link className="btn btn-ghost" href={`/admin/people/${user.id}`}>
+                          Manage access
+                        </Link>
                         <ResetPasswordForm userId={user.id} />
                         <DeleteUserButton userId={user.id} name={user.name} disabled={isSelf} />
                       </div>

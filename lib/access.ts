@@ -107,15 +107,28 @@ export function revokeFolderAccess(folderId: string, userId: string) {
   db.prepare(`DELETE FROM folder_access WHERE folderId = ? AND userId = ?`).run(folderId, userId);
 }
 
-export function listFolderMembers(folderId: string) {
+export function getUser(userId: string) {
+  return db
+    .prepare(`SELECT id, name, email, COALESCE(role, 'member') AS role, createdAt FROM "user" WHERE id = ?`)
+    .get(userId) as { id: string; name: string; email: string; role: string; createdAt: string } | undefined;
+}
+
+/**
+ * Every folder in the library, each tagged with what this user is granted on
+ * it (or null) — the per-person view of access. Administrators implicitly hold
+ * edit everywhere, so their grants read as "edit" and locked.
+ */
+export function listFolderAccessForUser(
+  userId: string,
+): { id: string; name: string; permission: Permission | null }[] {
   return db
     .prepare(
-      `SELECT a.userId, a.permission, u.name, u.email
-       FROM folder_access a JOIN "user" u ON u.id = a.userId
-       WHERE a.folderId = ?
-       ORDER BY u.name COLLATE NOCASE`,
+      `SELECT f.id, f.name, a.permission
+       FROM folder f
+       LEFT JOIN folder_access a ON a.folderId = f.id AND a.userId = ?
+       ORDER BY f.name COLLATE NOCASE`,
     )
-    .all(folderId) as { userId: string; permission: Permission; name: string; email: string }[];
+    .all(userId) as { id: string; name: string; permission: Permission | null }[];
 }
 
 export function listUsers() {

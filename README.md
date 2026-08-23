@@ -33,7 +33,8 @@ for reading and writing real `.xlsx` files.
   `.xlsm`, `.csv` and the like. Those are stored and downloaded byte-for-byte
   rather than opened in the grid — the only form in which they survive intact.
 - **Admin console.** Create accounts, reset passwords, promote to
-  administrator, create folders, and grant or revoke folder access.
+  administrator, and create folders. Access is managed per person: open someone
+  from the People list and set which folders they can view or edit.
 
 ## Getting started
 
@@ -151,7 +152,7 @@ app/
   (app)/                     everything behind a session
     folders/                 the Explorer view: tree, address bar, details list
     files/[fileId]/          the spreadsheet editor, or a download panel
-    admin/                   user, folder and access management
+    admin/                   people, folders; per-person access at people/[userId]
   api/
     auth/[...all]/           Better Auth handler
     files/[fileId]/          GET sheet data, PUT save, GET download

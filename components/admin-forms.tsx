@@ -6,13 +6,11 @@ import {
   createUserActionHandler,
   deleteFolderAction,
   deleteUserAction,
-  grantAccessAction,
   resetPasswordAction,
-  revokeAccessAction,
   setUserRoleAction,
   type ActionState,
 } from "@/app/(app)/admin/actions";
-import type { Permission, Role } from "@/lib/types";
+import type { Role } from "@/lib/types";
 
 const empty: ActionState = {};
 
@@ -188,91 +186,5 @@ export function DeleteFolderButton({ folderId, name }: { folderId: string; name:
         {pending ? "Deleting…" : "Delete"}
       </button>
     </form>
-  );
-}
-
-export function GrantAccessForm({
-  folderId,
-  candidates,
-}: {
-  folderId: string;
-  candidates: { id: string; name: string; email: string }[];
-}) {
-  const [state, action, pending] = useActionState(grantAccessAction, empty);
-
-  if (candidates.length === 0) {
-    return <p className="subtle">Everyone with an account already has access to this folder.</p>;
-  }
-
-  return (
-    <form action={action} className="flex flex-wrap items-end gap-3">
-      <input type="hidden" name="folderId" value={folderId} />
-      <div className="min-w-56 flex-1">
-        <label className="label" htmlFor="grant-user">
-          Person
-        </label>
-        <select id="grant-user" className="input" name="userId" required defaultValue="">
-          <option value="" disabled>
-            Choose someone…
-          </option>
-          {candidates.map((candidate) => (
-            <option key={candidate.id} value={candidate.id}>
-              {candidate.name} · {candidate.email}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="w-44">
-        <label className="label" htmlFor="grant-permission">
-          Access
-        </label>
-        <select id="grant-permission" className="input" name="permission" defaultValue="view">
-          <option value="view">View only</option>
-          <option value="edit">Can edit</option>
-        </select>
-      </div>
-      <button className="btn btn-primary" type="submit" disabled={pending}>
-        {pending ? "Granting…" : "Grant access"}
-      </button>
-      <Feedback state={state} />
-    </form>
-  );
-}
-
-export function MemberPermissionControls({
-  folderId,
-  userId,
-  permission,
-}: {
-  folderId: string;
-  userId: string;
-  permission: Permission;
-}) {
-  const [, grant] = useActionState(grantAccessAction, empty);
-  const [, revoke, revoking] = useActionState(revokeAccessAction, empty);
-
-  return (
-    <div className="flex items-center justify-end gap-2">
-      <form action={grant}>
-        <input type="hidden" name="folderId" value={folderId} />
-        <input type="hidden" name="userId" value={userId} />
-        <select
-          className="input mt-0 w-32 py-1.5"
-          name="permission"
-          defaultValue={permission}
-          onChange={(event) => event.currentTarget.form?.requestSubmit()}
-        >
-          <option value="view">View only</option>
-          <option value="edit">Can edit</option>
-        </select>
-      </form>
-      <form action={revoke}>
-        <input type="hidden" name="folderId" value={folderId} />
-        <input type="hidden" name="userId" value={userId} />
-        <button className="btn btn-danger" type="submit" disabled={revoking}>
-          {revoking ? "Removing…" : "Revoke"}
-        </button>
-      </form>
-    </div>
   );
 }

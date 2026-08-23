@@ -102,27 +102,21 @@ export async function deleteFolderAction(_previous: ActionState, formData: FormD
   return { message: "Folder deleted." };
 }
 
-export async function grantAccessAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+export async function setPersonFolderAccessAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   await requireAdmin();
 
-  const folderId = String(formData.get("folderId") ?? "");
   const userId = String(formData.get("userId") ?? "");
-  if (!folderId || !userId) return { error: "Choose a person to grant access to." };
+  const folderId = String(formData.get("folderId") ?? "");
+  if (!userId || !folderId) return { error: "Missing user or folder." };
 
-  setFolderAccess(folderId, userId, asPermission(formData.get("permission")));
+  const access = String(formData.get("access") ?? "none");
+  if (access === "none") revokeFolderAccess(folderId, userId);
+  else setFolderAccess(folderId, userId, asPermission(access));
 
-  revalidatePath(`/admin/folders/${folderId}`);
+  revalidatePath(`/admin/people/${userId}`);
   revalidatePath("/folders");
   return { message: "Access updated." };
-}
-
-export async function revokeAccessAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  await requireAdmin();
-
-  const folderId = String(formData.get("folderId") ?? "");
-  revokeFolderAccess(folderId, String(formData.get("userId") ?? ""));
-
-  revalidatePath(`/admin/folders/${folderId}`);
-  revalidatePath("/folders");
-  return { message: "Access revoked." };
 }
