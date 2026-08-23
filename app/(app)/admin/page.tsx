@@ -27,46 +27,6 @@ export default async function AdminPage() {
       </div>
 
       <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Folders</h2>
-
-        <div className="card mb-4 p-5">
-          <CreateFolderForm />
-        </div>
-
-        {folders.length === 0 ? (
-          <p className="subtle">No folders yet.</p>
-        ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Folder</th>
-                  <th className="hidden px-5 py-3 font-medium sm:table-cell">Files</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {folders.map((folder) => (
-                  <tr key={folder.id} className="border-b border-line last:border-0">
-                    <td className="px-5 py-3">
-                      <p className="font-medium text-ink">{folder.name}</p>
-                      {folder.description && <p className="subtle">{folder.description}</p>}
-                    </td>
-                    <td className="hidden px-5 py-3 text-muted sm:table-cell">{folder.fileCount}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <DeleteFolderButton folderId={folder.id} name={folder.name} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">People</h2>
 
         <div className="card mb-4 p-5">
@@ -118,6 +78,63 @@ export default async function AdminPage() {
           </table>
         </div>
       </section>
+
+      {/* Folders are secondary now that access is managed per person, so this
+          section is collapsed by default. */}
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5 transition-transform group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            aria-hidden
+          >
+            <path d="M9 5l7 7-7 7" />
+          </svg>
+          Folders
+          <span className="font-normal normal-case text-muted">({folders.length})</span>
+        </summary>
+
+        <div className="mt-4">
+          <div className="card mb-4 p-5">
+            <CreateFolderForm />
+          </div>
+
+          {folders.length === 0 ? (
+            <p className="subtle">No folders yet.</p>
+          ) : (
+            <div className="card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                    <th className="px-5 py-3 font-medium">Folder</th>
+                    <th className="hidden px-5 py-3 font-medium sm:table-cell">Files</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {folders.map((folder) => (
+                    <tr key={folder.id} className="border-b border-line last:border-0">
+                      <td className="px-5 py-3">
+                        <p className="font-medium text-ink">{folder.name}</p>
+                        {folder.description && <p className="subtle">{folder.description}</p>}
+                      </td>
+                      <td className="hidden px-5 py-3 text-muted sm:table-cell">{folder.fileCount}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <DeleteFolderButton folderId={folder.id} name={folder.name} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </details>
     </div>
   );
 }
