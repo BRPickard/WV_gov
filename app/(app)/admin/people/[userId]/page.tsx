@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FolderAccessRow } from "@/components/person-access";
+import { PersonAccessTable } from "@/components/person-access";
 import { getUser, listFolderAccessForUser } from "@/lib/access";
 import { requireAdmin } from "@/lib/session";
 
@@ -40,27 +40,7 @@ export default async function ManagePersonAccessPage({ params }: PageProps<"/adm
           </p>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Folder</th>
-                <th className="px-5 py-3 text-right font-medium">Access</th>
-              </tr>
-            </thead>
-            <tbody>
-              {folders.map((folder) => (
-                <FolderAccessRow
-                  key={folder.id}
-                  userId={userId}
-                  folderId={folder.id}
-                  folderName={folder.name}
-                  permission={folder.permission}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PersonAccessTable userId={userId} initialFolders={folders} />
       )}
 
       {!isAdmin && folders.length === 0 && (

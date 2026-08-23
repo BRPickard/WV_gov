@@ -107,6 +107,23 @@ export function revokeFolderAccess(folderId: string, userId: string) {
   db.prepare(`DELETE FROM folder_access WHERE folderId = ? AND userId = ?`).run(folderId, userId);
 }
 
+/**
+ * Sets one person's access on every folder at once, in a single transaction —
+ * the "set all" control on the per-person page. "none" clears every grant.
+ */
+export function setAllFoldersAccessForUser(userId: string, access: Permission | "none") {
+  const apply = db.transaction(() => {
+    if (access === "none") {
+      db.prepare(`DELETE FROM folder_access WHERE userId = ?`).run(userId);
+      return;
+    }
+    for (const folder of db.prepare(`SELECT id FROM folder`).all() as { id: string }[]) {
+      setFolderAccess(folder.id, userId, access);
+    }
+  });
+  apply();
+}
+
 export function getUser(userId: string) {
   return db
     .prepare(`SELECT id, name, email, COALESCE(role, 'member') AS role, createdAt FROM "user" WHERE id = ?`)

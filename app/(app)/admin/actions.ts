@@ -5,6 +5,7 @@ import {
   createFolder,
   deleteFolder,
   revokeFolderAccess,
+  setAllFoldersAccessForUser,
   setFolderAccess,
   setUserRole,
 } from "@/lib/access";
@@ -115,6 +116,24 @@ export async function setPersonFolderAccessAction(
   const access = String(formData.get("access") ?? "none");
   if (access === "none") revokeFolderAccess(folderId, userId);
   else setFolderAccess(folderId, userId, asPermission(access));
+
+  revalidatePath(`/admin/people/${userId}`);
+  revalidatePath("/folders");
+  return { message: "Access updated." };
+}
+
+/** Sets one person's access on every folder at once (the "set all" control). */
+export async function setAllFoldersAccessAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) return { error: "Missing user." };
+
+  const access = String(formData.get("access") ?? "none");
+  setAllFoldersAccessForUser(userId, access === "view" || access === "edit" ? access : "none");
 
   revalidatePath(`/admin/people/${userId}`);
   revalidatePath("/folders");

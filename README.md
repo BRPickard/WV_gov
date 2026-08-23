@@ -34,7 +34,8 @@ for reading and writing real `.xlsx` files.
   rather than opened in the grid — the only form in which they survive intact.
 - **Admin console.** Create accounts, reset passwords, promote to
   administrator, and create folders. Access is managed per person: open someone
-  from the People list and set which folders they can view or edit.
+  from the People list and set which folders they can view or edit, one at a
+  time or all at once with the "set all" controls.
 
 ## Getting started
 
