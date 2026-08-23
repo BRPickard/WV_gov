@@ -19,6 +19,11 @@ type Props = {
 /** Extra rows rendered above and below the viewport so scrolling stays smooth. */
 const OVERSCAN = 10;
 
+/** Column widths, in px. Drag a header's right edge to resize; double-click resets. */
+const DEFAULT_COL_WIDTH = 144;
+const MIN_COL_WIDTH = 48;
+const ROW_HEADER_WIDTH = 56;
+
 export default function SpreadsheetEditor({
   fileId,
   fileName,
@@ -39,6 +44,68 @@ export default function SpreadsheetEditor({
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(600);
+
+  // Column widths are a per-viewer convenience, remembered in the browser and
+  // never written back to the workbook. Keyed by file so each has its own.
+  const widthStorageKey = `wv-colwidths:${fileId}`;
+  const [colWidths, setColWidths] = useState<Record<number, number>>({});
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(widthStorageKey);
+      if (saved) setColWidths(JSON.parse(saved));
+    } catch {
+      // private mode or blocked storage — fall back to default widths
+    }
+    setRestored(true);
+  }, [widthStorageKey]);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      localStorage.setItem(widthStorageKey, JSON.stringify(colWidths));
+    } catch {
+      // ignore storage failures; widths just won't persist
+    }
+  }, [colWidths, restored, widthStorageKey]);
+
+  const widthOf = useCallback(
+    (columnIndex: number) => colWidths[columnIndex] ?? DEFAULT_COL_WIDTH,
+    [colWidths],
+  );
+
+  /** Drag the right edge of a header to resize its column. */
+  function startResize(columnIndex: number, event: React.PointerEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startWidth = widthOf(columnIndex);
+
+    function onMove(moveEvent: PointerEvent) {
+      const next = Math.max(MIN_COL_WIDTH, startWidth + (moveEvent.clientX - startX));
+      setColWidths((current) => ({ ...current, [columnIndex]: next }));
+    }
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function resetWidth(columnIndex: number) {
+    setColWidths((current) => {
+      const next = { ...current };
+      delete next[columnIndex];
+      return next;
+    });
+  }
 
   const sheet = sheets[active];
   const columnCount = useMemo(
@@ -281,16 +348,25 @@ export default function SpreadsheetEditor({
           className="max-h-[65vh] overflow-auto"
           onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         >
-          <table className="border-separate border-spacing-0 text-sm">
+          <table className="w-max border-separate border-spacing-0 text-sm">
+            <colgroup>
+              <col style={{ width: ROW_HEADER_WIDTH }} />
+              {Array.from({ length: columnCount }, (_, columnIndex) => (
+                <col key={columnIndex} style={{ width: widthOf(columnIndex) }} />
+              ))}
+            </colgroup>
             <thead className="sticky top-0 z-10">
               <tr>
-                <th className="sticky left-0 z-20 w-14 border-b border-r border-line bg-canvas" />
+                <th
+                  className="sticky left-0 z-20 border-b border-r border-line bg-canvas"
+                  style={{ width: ROW_HEADER_WIDTH }}
+                />
                 {Array.from({ length: columnCount }, (_, columnIndex) => (
                   <th
                     key={columnIndex}
-                    className="group min-w-[9rem] border-b border-r border-line bg-canvas px-2 py-1.5 text-xs font-medium text-muted"
+                    className="group relative border-b border-r border-line bg-canvas px-2 py-1.5 text-xs font-medium text-muted"
                   >
-                    <span className="flex items-center justify-between gap-1">
+                    <span className="flex items-center justify-between gap-1 pr-1">
                       {columnLabel(columnIndex)}
                       {canEdit && columnCount > 1 && (
                         <button
@@ -302,6 +378,13 @@ export default function SpreadsheetEditor({
                         </button>
                       )}
                     </span>
+                    {/* Drag to resize this column; double-click to reset. */}
+                    <span
+                      onPointerDown={(event) => startResize(columnIndex, event)}
+                      onDoubleClick={() => resetWidth(columnIndex)}
+                      className="absolute right-0 top-0 z-10 h-full w-1.5 -mr-px cursor-col-resize hover:bg-accent/40"
+                      title="Drag to resize · double-click to reset"
+                    />
                   </th>
                 ))}
               </tr>
@@ -335,7 +418,7 @@ export default function SpreadsheetEditor({
                       <td key={columnIndex} className="border-b border-r border-line p-0">
                         <input
                           data-cell={`${rowIndex}:${columnIndex}`}
-                          className={`block h-8 w-full px-2 text-ink outline-none focus:bg-accent-soft/60 focus:ring-1 focus:ring-inset focus:ring-accent ${
+                          className={`block h-8 w-full min-w-0 px-2 text-ink outline-none focus:bg-accent-soft/60 focus:ring-1 focus:ring-inset focus:ring-accent ${
                             rowIndex === 0 ? "bg-canvas font-semibold" : "bg-transparent"
                           }`}
                           value={row[columnIndex] ?? ""}
@@ -376,8 +459,8 @@ export default function SpreadsheetEditor({
       </div>
 
       <p className="subtle mt-4 text-xs">
-        Row 1 is saved as the header row. Cells that look like numbers are stored as numbers; formulas are
-        saved as text.
+        Drag a column&rsquo;s right edge to resize it (double-click to reset). Row 1 is saved as the header
+        row. Cells that look like numbers are stored as numbers; formulas are saved as text.
       </p>
     </div>
   );
