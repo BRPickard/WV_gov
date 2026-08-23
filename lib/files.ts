@@ -52,5 +52,23 @@ export function contentTypeOf(fileName: string): string {
   return CONTENT_TYPES[extensionOf(fileName)] ?? "application/octet-stream";
 }
 
+/** Explorer-style type descriptions for the details list. */
+const TYPE_LABELS: Record<string, string> = {
+  ".xlsx": "Microsoft Excel Worksheet",
+  ".xlsm": "Excel Macro-Enabled Worksheet",
+  ".xls": "Microsoft Excel 97-2003 Worksheet",
+  ".csv": "Comma Separated Values File",
+  ".docx": "Microsoft Word Document",
+  ".doc": "Microsoft Word 97-2003 Document",
+  ".pdf": "PDF Document",
+  ".pptx": "Microsoft PowerPoint Presentation",
+  ".txt": "Text Document",
+};
+
+export function typeLabelOf(fileName: string): string {
+  const extension = extensionOf(fileName);
+  return TYPE_LABELS[extension] ?? `${extension.replace(".", "").toUpperCase() || "Unknown"} File`;
+}
+
 export const ALLOWED_EXTENSIONS_LABEL = ALLOWED_EXTENSIONS.join(", ");
 export const ALLOWED_ACCEPT_ATTRIBUTE = ALLOWED_EXTENSIONS.join(",");

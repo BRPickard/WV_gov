@@ -20,19 +20,19 @@ export function NewSpreadsheetForm({ folderId }: { folderId: string }) {
         action(formData);
         setName("");
       }}
-      className="flex flex-col gap-2 sm:flex-row sm:items-center"
+      className="flex items-center gap-2"
     >
       <input type="hidden" name="folderId" value={folderId} />
       <input
-        className="input mt-0 sm:w-64"
+        className="input mt-0 w-44 py-1.5"
         name="name"
         required
         placeholder="New workbook name"
         value={name}
         onChange={(event) => setName(event.target.value)}
       />
-      <button className="btn btn-primary" type="submit" disabled={pending}>
-        {pending ? "Creating…" : "Create workbook"}
+      <button className="btn" type="submit" disabled={pending}>
+        {pending ? "Creating…" : "New"}
       </button>
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
     </form>

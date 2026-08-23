@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import DeleteFileButton from "@/components/delete-file-button";
-import { NewSpreadsheetForm, UploadFileForm } from "@/components/file-actions";
-import { getFolderForUser, listFiles } from "@/lib/access";
-import { extensionOf } from "@/lib/files";
-import { formatBytes, formatDate } from "@/lib/format";
+import Explorer, { type ExplorerRow } from "@/components/explorer";
+import { getFolderForUser, listFiles, listFoldersForUser } from "@/lib/access";
+import { typeLabelOf } from "@/lib/files";
 import { requireUser } from "@/lib/session";
 
 export default async function FolderPage({ params }: PageProps<"/folders/[folderId]">) {
@@ -17,122 +14,34 @@ export default async function FolderPage({ params }: PageProps<"/folders/[folder
   if (!access) notFound();
 
   const files = listFiles(folderId);
-  const canEdit = access.permission === "edit";
+  const folders = listFoldersForUser(user);
+
+  const rows: ExplorerRow[] = files.map((file) => ({
+    id: file.id,
+    name: file.name,
+    kind: file.kind,
+    href: `/files/${file.id}`,
+    typeLabel: typeLabelOf(file.name),
+    updatedAt: file.updatedAt,
+    sizeBytes: file.sizeBytes,
+  }));
 
   return (
-    <div>
-      <Link href="/folders" className="subtle mb-6 inline-flex items-center gap-1.5 hover:text-ink">
-        <span aria-hidden>←</span> All folders
-      </Link>
-
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="page-title">{access.folder.name}</h1>
-            <span className={`badge ${canEdit ? "bg-accent-soft text-accent" : "bg-canvas text-muted"}`}>
-              {canEdit ? "Can edit" : "View only"}
-            </span>
-          </div>
-          {access.folder.description && <p className="subtle mt-1">{access.folder.description}</p>}
-        </div>
-        {canEdit && <UploadFileForm folderId={folderId} />}
-      </div>
-
-      {canEdit && (
-        <div className="card mb-6 p-4">
-          <NewSpreadsheetForm folderId={folderId} />
-        </div>
-      )}
-
-      {files.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="font-medium text-ink">This folder is empty</p>
-          <p className="subtle mt-1">
-            {canEdit ? "Create a workbook or upload a file to get started." : "Nothing has been added yet."}
-          </p>
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="hidden px-5 py-3 font-medium sm:table-cell">Last updated</th>
-                <th className="hidden px-5 py-3 font-medium md:table-cell">By</th>
-                <th className="hidden px-5 py-3 font-medium sm:table-cell">Size</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file) => (
-                <tr key={file.id} className="border-b border-line last:border-0 hover:bg-canvas">
-                  <td className="px-5 py-3">
-                    <Link
-                      href={`/files/${file.id}`}
-                      className="flex items-center gap-2.5 font-medium text-ink hover:text-accent"
-                    >
-                      <FileIcon spreadsheet={file.kind === "spreadsheet"} />
-                      <span>
-                        {file.name}
-                        {file.kind !== "spreadsheet" && (
-                          <span className="ml-2 text-xs font-normal uppercase text-muted">
-                            {extensionOf(file.name).replace(".", "")}
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="hidden px-5 py-3 text-muted sm:table-cell">{formatDate(file.updatedAt)}</td>
-                  <td className="hidden px-5 py-3 text-muted md:table-cell">{file.updatedByName ?? "—"}</td>
-                  <td className="hidden px-5 py-3 text-muted sm:table-cell">{formatBytes(file.sizeBytes)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link className="btn btn-ghost" href={`/api/files/${file.id}/download`}>
-                        Download
-                      </Link>
-                      {canEdit && <DeleteFileButton fileId={file.id} name={file.name} />}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FileIcon({ spreadsheet }: { spreadsheet: boolean }) {
-  if (spreadsheet) {
-    return (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        className="shrink-0 text-emerald-600"
-      >
-        <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
-        <path d="M3.5 9.5h17M9.5 9.5v11" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      className="shrink-0 text-muted"
-    >
-      <path d="M6 3.5h7.5L18 8v12.5H6z" />
-      <path d="M13.5 3.5V8H18" />
-    </svg>
+    <Explorer
+      rows={rows}
+      folders={folders.map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        permission: folder.permission,
+      }))}
+      currentFolderId={folderId}
+      currentFolderName={access.folder.name}
+      canEdit={access.permission === "edit"}
+      emptyMessage={
+        access.permission === "edit"
+          ? "This folder is empty. Create a workbook or upload a file."
+          : "This folder is empty."
+      }
+    />
   );
 }

@@ -14,6 +14,11 @@ for reading and writing real `.xlsx` files.
 - **Secure sign-in.** Email + password sessions handled by Better Auth
   (scrypt-hashed credentials, HTTP-only session cookies, 8-hour sessions).
   Self-service sign-up is disabled — accounts are issued by an administrator.
+- **A file browser, not a dashboard.** Folders and files are presented the way
+  Windows Explorer presents them: a folder tree down the left, a sortable
+  details list (Name / Date modified / Type / Size) on the right, an address
+  bar across the top. Single-click selects, double-click opens, Enter opens the
+  selection and Backspace goes up a level.
 - **Folders you can actually see.** Every folder query joins through a grant
   table, so a folder a user has no grant for is invisible to them and returns
   the same 404 as one that does not exist.
@@ -144,7 +149,7 @@ library/                     the folders and documents, one directory each
 app/
   login/                     sign-in page
   (app)/                     everything behind a session
-    folders/                 folder list + folder contents + server actions
+    folders/                 the Explorer view: tree, address bar, details list
     files/[fileId]/          the spreadsheet editor, or a download panel
     admin/                   user, folder and access management
   api/
