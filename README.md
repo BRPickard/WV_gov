@@ -36,12 +36,14 @@ for reading and writing real `.xlsx` files.
 npm install
 cp .env.example .env.local                                    # copy on Windows cmd
 npm run db:migrate                                            # create the tables
-npm run create-admin -- "Your Name" you@wv.gov "a-password"   # the first account
+npm run create-admin -- "Your Name" you@wv.gov "a-password"   # the only account
+npm run import                                                # load library/
 npm run dev                                                   # http://localhost:3000
 ```
 
-Sign-up is closed, so `create-admin` (or `npm run seed`, below) is the only way
-the first account comes into existence.
+That leaves you with one administrator and the 19 folders committed under
+`library/`. Sign-up is closed, so `create-admin` is the only way an account
+comes into existence; everyone else is added from the admin console.
 
 **On Windows** use `cmd` or PowerShell as normal, with two adjustments: `copy`
 instead of `cp`, and double quotes everywhere — `cmd` passes single-quoted text
@@ -54,10 +56,9 @@ every platform:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-`BETTER_AUTH_URL` must match the origin you actually browse to — if it says
-`localhost:3000` and you open `127.0.0.1:3000`, sign-in fails with
-`Invalid origin`, because requests carrying a different `Origin` header are
-rejected.
+`BETTER_AUTH_URL` matters in production, where it must match the origin the app
+is served from. In development it is inferred from the request, so the app works
+on whatever port Next picked and on `localhost` or `127.0.0.1` alike.
 
 ### Running it in a conda / Anaconda environment
 
@@ -71,8 +72,8 @@ conda activate wv-document-library
 npm install                         # then follow "Getting started" above
 ```
 
-Everything after that is identical: `npm run db:migrate`, `npm run seed`,
-`npm run dev`.
+Everything after that is identical: `npm run db:migrate`, `npm run create-admin`,
+`npm run import`, `npm run dev`.
 
 Two things worth knowing:
 
@@ -98,15 +99,22 @@ Two things worth knowing:
     - cxx-compiler    # on Windows, install MSVC Build Tools instead
   ```
 
-### Loading an existing folder tree
+### The document library
 
-If the folders and files already exist on disk — one directory per folder, its
-files inside — import them in one go:
+The folders and files live in `library/`, committed alongside the code — one
+directory per folder, its documents inside. `npm run import` loads them into
+the database:
 
 ```bash
-npm run import -- /path/to/tree            # add what is missing
-npm run import -- /path/to/tree --replace  # also overwrite files already there
+npm run import              # add anything not imported yet
+npm run import -- --replace # also reset already-imported files to the originals
+npm run import -- ./other   # import some other directory instead
 ```
+
+`library/` is the source corpus, not live storage. Importing copies each file
+into `DATA_DIR`, and edits made in the app change that copy — the committed
+originals stay as they were, which is what makes `--replace` a way back to a
+known state.
 
 Re-running is safe: folders and files that already exist are left alone unless
 `--replace` is passed. Every spreadsheet is opened during the import, so a file
@@ -118,20 +126,6 @@ is listed at the end.
 see them until access is handed out under `/admin`. Nothing in a directory tree
 says who should be allowed to read it, so the import will not guess.
 
-### Demo accounts
-
-`npm run seed` creates three accounts (password `ChangeMe!2026`, override with
-`SEED_PASSWORD`) and three folders that demonstrate the permission model:
-
-| Account | Role | Budget FY26 | Public Works | Human Resources |
-| --- | --- | --- | --- | --- |
-| `admin@wv.gov` | Administrator | edit | edit | edit |
-| `dana@wv.gov` | Member | edit | — | — |
-| `marcus@wv.gov` | Member | view | edit | — |
-
-Dana never sees Public Works or Human Resources; Marcus can read the budget
-workbook but the API rejects any save he attempts.
-
 ## Scripts
 
 | Command | What it does |
@@ -140,13 +134,13 @@ workbook but the API rejects any save he attempts.
 | `npm run build` | Production build |
 | `npm run start` | Migrate, then start the production server |
 | `npm run db:migrate` | Create/update all tables (idempotent) |
-| `npm run create-admin -- "<name>" <email> <password>` | Create the first administrator |
-| `npm run import -- <dir> [--replace]` | Import a directory of folders and files |
-| `npm run seed` | Create the demo accounts, folders and workbooks |
+| `npm run create-admin -- "<name>" <email> <password>` | Create an administrator |
+| `npm run import [-- <dir>] [--replace]` | Load `library/` (or another tree) into the database |
 
 ## How it fits together
 
 ```
+library/                     the folders and documents, one directory each
 app/
   login/                     sign-in page
   (app)/                     everything behind a session

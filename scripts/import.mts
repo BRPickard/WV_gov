@@ -1,12 +1,17 @@
 /**
- * Imports a directory of folders into the library:
+ * Loads the library's documents into the database:
  *
- *   npm run import -- ./path/to/tree
+ *   npm run import                     # imports ./library, the tree in this repo
+ *   npm run import -- ./other/tree     # or any other directory
+ *   npm run import -- --replace        # overwrite files already imported
  *
  * Each top-level directory becomes a folder; the files inside it become that
- * folder's files. Re-running is safe — folders and files that already exist
- * are left alone unless --replace is passed, which overwrites files whose name
- * already exists in the folder.
+ * folder's files. Re-running is safe — folders and files that already exist are
+ * left alone unless --replace is passed.
+ *
+ * `library/` is the source corpus, not live storage: importing copies each file
+ * into DATA_DIR, and edits made in the app change that copy. The committed
+ * originals stay as they were, so `--replace` resets a folder back to them.
  *
  * Imported folders start with no access grants, so only administrators can see
  * them until access is handed out from the admin console. That is deliberate:
@@ -22,14 +27,12 @@ import { ALLOWED_EXTENSIONS_LABEL, extensionOf, isAllowedFile, kindOf } from "..
 import { MAX_UPLOAD_BYTES, cleanFileName, storagePath } from "../lib/storage";
 import type { Folder } from "../lib/types";
 
+/** The document tree committed alongside the code. */
+const DEFAULT_LIBRARY = "./library";
+
 const args = process.argv.slice(2);
 const replace = args.includes("--replace");
-const root = args.find((arg) => !arg.startsWith("--"));
-
-if (!root) {
-  console.error("Usage: npm run import -- <directory> [--replace]");
-  process.exit(1);
-}
+const root = args.find((arg) => !arg.startsWith("--")) ?? DEFAULT_LIBRARY;
 if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
   console.error(`Not a directory: ${root}`);
   process.exit(1);
@@ -37,9 +40,14 @@ if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
 
 const admin = listUsers().find((user) => user.role === "admin");
 if (!admin) {
-  console.error("No administrator account exists yet. Run `npm run seed` first, or create one.");
+  console.error(
+    'No administrator account exists yet. Create one first:\n' +
+      '  npm run create-admin -- "Your Name" you@wv.gov "a-long-password"',
+  );
   process.exit(1);
 }
+
+console.log(`Importing ${root}\n`);
 
 let created = 0;
 let skipped = 0;

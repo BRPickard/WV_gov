@@ -20,6 +20,10 @@ full picture; the essentials for working in this repo:
   every cell produced a 35 MB page. Keep row height fixed and in sync.
 - A folder holds two kinds of file. `kind = 'spreadsheet'` (.xlsx) opens in the
   editor; everything else is stored and downloaded byte-for-byte.
+- `library/` holds the real folders and documents, committed with the code.
+  `npm run import` loads them into `DATA_DIR`; edits in the app change that
+  copy, never the committed original. There is no demo seed — setup creates one
+  administrator and imports `library/`.
 - Schema changes: auth tables come from `npm run db:migrate` (generated from
   the Better Auth config), app tables from `lib/schema.ts`, applied on boot.
 - `npm run build` runs the TypeScript check; run it before committing.

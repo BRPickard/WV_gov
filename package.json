@@ -8,8 +8,7 @@
     "start": "npm run db:migrate && next start",
     "db:migrate": "tsx scripts/migrate.mts",
     "create-admin": "tsx scripts/create-admin.mts",
-    "import": "tsx scripts/import.mts",
-    "seed": "tsx scripts/seed.mts"
+    "import": "tsx scripts/import.mts"
   },
   "dependencies": {
     "better-auth": "^1.7.1",

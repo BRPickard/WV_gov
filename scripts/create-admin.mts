@@ -1,11 +1,10 @@
 /**
- * Creates the first administrator, so a real deployment never has to run the
- * demo seed:
+ * Creates an administrator:
  *
- *   npm run create-admin -- "Ada Bell" ada@wv.gov 'a-long-password'
+ *   npm run create-admin -- "Ada Bell" ada@wv.gov "a-long-password"
  *
- * Sign-up is closed in the app, so this (or `npm run seed`) is the only way an
- * account comes into existence before anyone can sign in.
+ * Sign-up is closed in the app, so this is the only way the first account comes
+ * into existence. Everyone after that is added from the admin console.
  */
 import { createUserAccount } from "../lib/users";
 
