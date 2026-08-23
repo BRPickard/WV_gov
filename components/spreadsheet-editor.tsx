@@ -107,6 +107,34 @@ export default function SpreadsheetEditor({
     });
   }
 
+  // "Lock header" freezes row 1 so it stays visible while scrolling. Like the
+  // column widths, it is a per-viewer preference remembered in the browser.
+  const freezeStorageKey = `wv-freeze:${fileId}`;
+  const [freezeHeader, setFreezeHeader] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(freezeStorageKey);
+      if (saved !== null) setFreezeHeader(saved === "1");
+    } catch {
+      // storage blocked — keep the default
+    }
+  }, [freezeStorageKey]);
+
+  function toggleFreeze(next: boolean) {
+    setFreezeHeader(next);
+    try {
+      localStorage.setItem(freezeStorageKey, next ? "1" : "0");
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  // The frozen row sticks just below the sticky column-letter header, so we
+  // measure that header's height to position it.
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(33);
+
   const sheet = sheets[active];
   const columnCount = useMemo(
     () => sheet.rows.reduce((widest, row) => Math.max(widest, row.length), 1),
@@ -123,13 +151,21 @@ export default function SpreadsheetEditor({
     sheet.rows.length,
     firstVisible + Math.ceil(viewport / ROW_HEIGHT) + OVERSCAN * 2,
   );
-  const padTop = firstVisible * ROW_HEIGHT;
+
+  // When the header is frozen, row 0 is rendered separately as a sticky row, so
+  // the virtual window covers rows 1..n and its top spacer starts after row 0.
+  const frozen = freezeHeader && sheet.rows.length > 1;
+  const dataStart = frozen ? Math.max(firstVisible, 1) : firstVisible;
+  const padTop = frozen ? Math.max(0, dataStart - 1) * ROW_HEIGHT : firstVisible * ROW_HEIGHT;
   const padBottom = (sheet.rows.length - lastVisible) * ROW_HEIGHT;
 
   useLayoutEffect(() => {
     const element = scroller.current;
     if (!element) return;
-    const measure = () => setViewport(element.clientHeight);
+    const measure = () => {
+      setViewport(element.clientHeight);
+      if (theadRef.current) setHeaderHeight(theadRef.current.offsetHeight);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
@@ -276,7 +312,54 @@ export default function SpreadsheetEditor({
     }
   }
 
-  const visibleRows = sheet.rows.slice(firstVisible, lastVisible);
+  const visibleRows = sheet.rows.slice(dataStart, lastVisible);
+
+  /** One grid row. `sticky` pins it below the column-letter header (frozen row 1). */
+  function renderRow(row: string[], rowIndex: number, sticky = false) {
+    return (
+      <tr
+        key={rowIndex}
+        className="group"
+        style={
+          sticky
+            ? { height: ROW_HEIGHT, position: "sticky", top: headerHeight, zIndex: 8 }
+            : { height: ROW_HEIGHT }
+        }
+      >
+        <th
+          className="sticky left-0 z-10 border-b border-r border-line bg-canvas px-2 text-xs font-normal text-muted"
+          style={sticky ? { zIndex: 12 } : undefined}
+        >
+          <span className="flex items-center justify-between gap-1">
+            {rowIndex + 1}
+            {canEdit && sheet.rows.length > 1 && (
+              <button
+                className="invisible rounded px-1 hover:text-red-600 group-hover:visible"
+                onClick={() => removeRow(rowIndex)}
+                title={`Delete row ${rowIndex + 1}`}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        </th>
+        {Array.from({ length: columnCount }, (_, columnIndex) => (
+          <td key={columnIndex} className="border-b border-r border-line bg-surface p-0">
+            <input
+              data-cell={`${rowIndex}:${columnIndex}`}
+              className={`block h-8 w-full min-w-0 px-2 text-ink outline-none focus:bg-accent-soft/60 focus:ring-1 focus:ring-inset focus:ring-accent ${
+                rowIndex === 0 ? "bg-canvas font-semibold" : "bg-transparent"
+              }`}
+              value={row[columnIndex] ?? ""}
+              readOnly={!canEdit}
+              onChange={(event) => setCell(rowIndex, columnIndex, event.target.value)}
+              onKeyDown={(event) => onCellKeyDown(event, rowIndex, columnIndex)}
+            />
+          </td>
+        ))}
+      </tr>
+    );
+  }
 
   return (
     <div>
@@ -296,6 +379,15 @@ export default function SpreadsheetEditor({
         <div className="flex flex-wrap items-center gap-2">
           {status && <span className="subtle">{status}</span>}
           {dirty && <span className="badge bg-amber-50 text-amber-700">Unsaved changes</span>}
+          <label className="btn cursor-pointer select-none gap-2" title="Keep row 1 visible while scrolling">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 accent-[var(--color-accent)]"
+              checked={freezeHeader}
+              onChange={(event) => toggleFreeze(event.target.checked)}
+            />
+            Lock header
+          </label>
           <Link className="btn" href={`/api/files/${fileId}/download`}>
             Download
           </Link>
@@ -355,7 +447,7 @@ export default function SpreadsheetEditor({
                 <col key={columnIndex} style={{ width: widthOf(columnIndex) }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10">
+            <thead ref={theadRef} className="sticky top-0 z-10">
               <tr>
                 <th
                   className="sticky left-0 z-20 border-b border-r border-line bg-canvas"
@@ -390,47 +482,15 @@ export default function SpreadsheetEditor({
               </tr>
             </thead>
             <tbody>
+              {frozen && renderRow(sheet.rows[0], 0, true)}
+
               {padTop > 0 && (
                 <tr aria-hidden>
                   <td colSpan={columnCount + 1} style={{ height: padTop }} className="p-0" />
                 </tr>
               )}
 
-              {visibleRows.map((row, offset) => {
-                const rowIndex = firstVisible + offset;
-                return (
-                  <tr key={rowIndex} className="group" style={{ height: ROW_HEIGHT }}>
-                    <th className="sticky left-0 z-10 border-b border-r border-line bg-canvas px-2 text-xs font-normal text-muted">
-                      <span className="flex items-center justify-between gap-1">
-                        {rowIndex + 1}
-                        {canEdit && sheet.rows.length > 1 && (
-                          <button
-                            className="invisible rounded px-1 hover:text-red-600 group-hover:visible"
-                            onClick={() => removeRow(rowIndex)}
-                            title={`Delete row ${rowIndex + 1}`}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </span>
-                    </th>
-                    {Array.from({ length: columnCount }, (_, columnIndex) => (
-                      <td key={columnIndex} className="border-b border-r border-line p-0">
-                        <input
-                          data-cell={`${rowIndex}:${columnIndex}`}
-                          className={`block h-8 w-full min-w-0 px-2 text-ink outline-none focus:bg-accent-soft/60 focus:ring-1 focus:ring-inset focus:ring-accent ${
-                            rowIndex === 0 ? "bg-canvas font-semibold" : "bg-transparent"
-                          }`}
-                          value={row[columnIndex] ?? ""}
-                          readOnly={!canEdit}
-                          onChange={(event) => setCell(rowIndex, columnIndex, event.target.value)}
-                          onKeyDown={(event) => onCellKeyDown(event, rowIndex, columnIndex)}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
+              {visibleRows.map((row, offset) => renderRow(row, dataStart + offset))}
 
               {padBottom > 0 && (
                 <tr aria-hidden>
@@ -459,8 +519,9 @@ export default function SpreadsheetEditor({
       </div>
 
       <p className="subtle mt-4 text-xs">
-        Drag a column&rsquo;s right edge to resize it (double-click to reset). Row 1 is saved as the header
-        row. Cells that look like numbers are stored as numbers; formulas are saved as text.
+        Drag a column&rsquo;s right edge to resize it (double-click to reset). &ldquo;Lock header&rdquo; keeps
+        row 1 in view while scrolling. Row 1 is saved as the header row; cells that look like numbers are
+        stored as numbers and formulas are saved as text.
       </p>
     </div>
   );
