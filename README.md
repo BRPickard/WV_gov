@@ -40,6 +40,45 @@ npm run dev                         # http://localhost:3000
 `BETTER_AUTH_URL` must match the origin the app is served from; requests
 arriving with a different `Origin` header are rejected.
 
+### Running it in a conda / Anaconda environment
+
+There is no Python in this project — conda is simply a convenient way to pin a
+Node runtime per project instead of installing one system-wide. An
+`environment.yml` is included:
+
+```bash
+conda env create -f environment.yml
+conda activate wv-document-library
+npm install                         # then follow "Getting started" above
+```
+
+Everything after that is identical: `npm run db:migrate`, `npm run seed`,
+`npm run dev`.
+
+Two things worth knowing:
+
+- **Use the conda-forge channel, not Anaconda's `defaults`.** The
+  `environment.yml` asks for `conda-forge` and `nodefaults`, but if
+  `defaults` is still in your own `~/.condarc`, `conda env create` stops with
+  a Terms of Service error for `repo.anaconda.com`. Either run the
+  `conda tos accept` commands it prints, or drop `defaults` from your
+  channels (`conda config --remove channels defaults`). Miniforge, which ships
+  with conda-forge only, avoids the question entirely.
+- **`better-sqlite3` is a native module.** Its installer downloads a prebuilt
+  binary for your platform and Node version, which is why the environment pins
+  `nodejs=22.*` — the package supports Node 20 and 22-26, so an older conda
+  Node (18, say) will fail to install. If no prebuilt binary exists for your
+  platform, npm falls back to compiling with node-gyp; add build tools to the
+  environment in that case:
+
+  ```yaml
+  dependencies:
+    - nodejs=22.*
+    - python          # node-gyp needs it
+    - make
+    - cxx-compiler    # on Windows, install MSVC Build Tools instead
+  ```
+
 ### Demo accounts
 
 `npm run seed` creates three accounts (password `ChangeMe!2026`, override with

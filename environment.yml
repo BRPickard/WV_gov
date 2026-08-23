@@ -1,0 +1,19 @@
+# Conda environment for the WV Document Library.
+#
+# This is a Node.js app — conda is only used here to pin a Node runtime per
+# project instead of installing one system-wide. There is no Python code.
+#
+#   conda env create -f environment.yml
+#   conda activate wv-document-library
+#   npm install
+#
+name: wv-document-library
+channels:
+  - conda-forge
+  # Keep Anaconda's own "defaults" channel out of the solve: it is subject to
+  # Anaconda's Terms of Service, which many organisations cannot accept.
+  - nodefaults
+dependencies:
+  # better-sqlite3 12.x supports Node 20, 22, 23, 24, 25 and 26. Node 22 is
+  # the version this app was built and tested against.
+  - nodejs=22.*
