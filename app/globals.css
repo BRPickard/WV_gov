@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+ * A deliberately small, white-based design system: one neutral ramp, one
+ * accent, generous whitespace, hairline borders. Everything else is Tailwind.
+ */
+@theme {
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e6e8ec;
+  --color-accent: #1f5fd8;
+  --color-accent-soft: #eef3fd;
+  --color-surface: #ffffff;
+  --color-canvas: #fafbfc;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-ink;
+  }
+
+  .input {
+    @apply mt-1.5 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
+      outline-none transition placeholder:text-muted/70
+      focus:border-accent focus:ring-2 focus:ring-accent/15;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface
+      px-3.5 py-2 text-sm font-medium text-ink transition
+      hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply border-accent bg-accent text-white hover:bg-accent/90;
+  }
+
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-muted hover:bg-canvas hover:text-ink;
+  }
+
+  .btn-danger {
+    @apply border-transparent bg-transparent text-red-600 hover:bg-red-50;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-ink;
+  }
+
+  .subtle {
+    @apply text-sm text-muted;
+  }
+}

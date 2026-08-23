@@ -1,0 +1,128 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import {
+  createFolder,
+  deleteFolder,
+  revokeFolderAccess,
+  setFolderAccess,
+  setUserRole,
+} from "@/lib/access";
+import { requireAdmin } from "@/lib/session";
+import { createUserAccount, deleteUserAccount, setUserPassword } from "@/lib/users";
+import type { Permission, Role } from "@/lib/types";
+
+export type ActionState = { error?: string; message?: string };
+
+const asRole = (value: unknown): Role => (value === "admin" ? "admin" : "member");
+const asPermission = (value: unknown): Permission => (value === "edit" ? "edit" : "view");
+
+export async function createUserActionHandler(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+
+  const result = await createUserAccount({
+    name: String(formData.get("name") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    role: asRole(formData.get("role")),
+  });
+
+  if (result.error) return { error: result.error };
+
+  revalidatePath("/admin");
+  return { message: "Account created." };
+}
+
+export async function setUserRoleAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+
+  if (userId === admin.id) return { error: "You cannot change your own role." };
+
+  setUserRole(userId, asRole(formData.get("role")));
+  revalidatePath("/admin");
+  return { message: "Role updated." };
+}
+
+export async function resetPasswordAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+
+  const result = await setUserPassword(
+    String(formData.get("userId") ?? ""),
+    String(formData.get("password") ?? ""),
+  );
+
+  if (result.error) return { error: result.error };
+  return { message: "Password reset. The user has been signed out everywhere." };
+}
+
+export async function deleteUserAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+
+  if (userId === admin.id) return { error: "You cannot delete your own account." };
+
+  await deleteUserAccount(userId);
+  revalidatePath("/admin");
+  return { message: "Account removed." };
+}
+
+export async function createFolderAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+
+  if (name === "") return { error: "A folder name is required." };
+
+  try {
+    createFolder(name, String(formData.get("description") ?? ""), admin.id);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+      return { error: "A folder with that name already exists." };
+    }
+    throw error;
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/folders");
+  return { message: "Folder created." };
+}
+
+export async function deleteFolderAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+
+  // Workbook rows cascade with the folder; the files themselves are left on
+  // disk so a mistaken delete stays recoverable from a backup.
+  deleteFolder(String(formData.get("folderId") ?? ""));
+
+  revalidatePath("/admin");
+  revalidatePath("/folders");
+  return { message: "Folder deleted." };
+}
+
+export async function grantAccessAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+
+  const folderId = String(formData.get("folderId") ?? "");
+  const userId = String(formData.get("userId") ?? "");
+  if (!folderId || !userId) return { error: "Choose a person to grant access to." };
+
+  setFolderAccess(folderId, userId, asPermission(formData.get("permission")));
+
+  revalidatePath(`/admin/folders/${folderId}`);
+  revalidatePath("/folders");
+  return { message: "Access updated." };
+}
+
+export async function revokeAccessAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+
+  const folderId = String(formData.get("folderId") ?? "");
+  revokeFolderAccess(folderId, String(formData.get("userId") ?? ""));
+
+  revalidatePath(`/admin/folders/${folderId}`);
+  revalidatePath("/folders");
+  return { message: "Access revoked." };
+}
