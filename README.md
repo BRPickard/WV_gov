@@ -186,6 +186,13 @@ escape the directory. Saves are written to a
 temporary file and renamed into place, so a failed save cannot truncate the
 existing workbook. Set `DATA_DIR` to move both.
 
+## Deploying with Docker / Azure
+
+The repo ships a `Dockerfile`, a `docker-compose.yml` for a local run, and
+`DEPLOY.md` — a step-by-step Azure runbook (Web App for Containers + Azure
+Files). The image serves on port 3000 and keeps all state under `/data`, which
+must be a mounted volume. See `DEPLOY.md`.
+
 ## Known limits
 
 These are deliberate, to keep the app small:

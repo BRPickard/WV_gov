@@ -1,0 +1,27 @@
+# Local run that mirrors the container as it would run on Azure.
+#
+#   BETTER_AUTH_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))") \
+#   docker compose up --build
+#
+# Then open http://localhost:3000 and sign in with the bootstrap admin below.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Required. Generate once and keep it stable, or every restart invalidates
+      # existing sessions.
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}"
+      # Must match the URL in the browser. For local docker that is localhost.
+      BETTER_AUTH_URL: "http://localhost:3000"
+      # First admin, created on first boot (safe to leave set afterwards).
+      BOOTSTRAP_ADMIN_NAME: "AECOM Admin"
+      BOOTSTRAP_ADMIN_EMAIL: "admin@aecom.com"
+      BOOTSTRAP_ADMIN_PASSWORD: "AecomAdmin2026!"
+    volumes:
+      # Persists the SQLite database and uploaded files between runs.
+      - wv-data:/data
+
+volumes:
+  wv-data:

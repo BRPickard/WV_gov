@@ -20,8 +20,12 @@ const globalForDb = globalThis as unknown as { __db?: Database.Database };
 
 function createDb() {
   const db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
+  // WAL is best on a local disk. Over a network share (Azure Files / SMB) its
+  // shared-memory file is unreliable, so set SQLITE_JOURNAL_MODE=DELETE there.
+  const journalMode = process.env.SQLITE_JOURNAL_MODE ?? "WAL";
+  db.pragma(`journal_mode = ${journalMode}`);
   db.pragma("foreign_keys = ON");
+  db.pragma("busy_timeout = 5000");
   migrate(db);
   return db;
 }
