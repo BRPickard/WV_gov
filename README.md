@@ -188,10 +188,13 @@ existing workbook. Set `DATA_DIR` to move both.
 
 ## Deploying with Docker / Azure
 
-The repo ships a `Dockerfile`, a `docker-compose.yml` for a local run, and
-`DEPLOY.md` — a step-by-step Azure runbook (Web App for Containers + Azure
-Files). The image serves on port 3000 and keeps all state under `/data`, which
-must be a mounted volume. See `DEPLOY.md`.
+The repo ships a `Dockerfile` and a `docker-compose.yml` for a local run. The
+image serves on the port its host assigns and keeps all state under `/data`,
+which must be a mounted volume. Step-by-step runbooks:
+
+- **`RAILWAY.md`** — deploy to Railway (builds from the Dockerfile; add a volume
+  mounted at `/data`).
+- **`DEPLOY.md`** — deploy to Azure (Web App for Containers + Azure Files).
 
 ## Known limits
 
