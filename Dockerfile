@@ -46,10 +46,11 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # The SQLite database and uploaded files live here. Mount a volume at this path
-# (Azure Files, a managed disk, or a docker volume) so data survives redeploys.
+# (Railway Volume, Azure Files, a managed disk, or a docker volume) so data
+# survives redeploys. No Docker VOLUME instruction — Railway rejects it and
+# manages the mount itself; a bind/named volume at /data works the same way.
 ENV DATA_DIR=/data
 RUN mkdir -p /data && chown -R node:node /app /data
-VOLUME ["/data"]
 
 USER node
 EXPOSE 3000
