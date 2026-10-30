@@ -49,10 +49,14 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # (Railway Volume, Azure Files, a managed disk, or a docker volume) so data
 # survives redeploys. No Docker VOLUME instruction — Railway rejects it and
 # manages the mount itself; a bind/named volume at /data works the same way.
+#
+# The container runs as root so it can write a volume the platform mounts as
+# root (Railway mounts /data root-owned, which a non-root user cannot create
+# files in). The entrypoint fixes ownership and could drop privileges, but for
+# this internal, single-tenant app running as root inside the container is fine.
 ENV DATA_DIR=/data
-RUN mkdir -p /data && chown -R node:node /app /data
+RUN mkdir -p /data
 
-USER node
 EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]

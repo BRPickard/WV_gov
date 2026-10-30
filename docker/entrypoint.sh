@@ -5,6 +5,11 @@
 set -e
 
 : "${PORT:=3000}"
+: "${DATA_DIR:=/data}"
+
+# The data volume is mounted at runtime, so make sure it exists and is writable
+# before anything touches the database. Running as root, this always succeeds.
+mkdir -p "$DATA_DIR/files"
 
 echo "[entrypoint] applying database schema…"
 npm run db:migrate
